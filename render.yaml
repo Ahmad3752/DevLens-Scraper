@@ -3,7 +3,7 @@ services:
     name: devlens-job-scraper
     runtime: python
     plan: free
-    buildCommand: pip install uv && uv sync --frozen && uv run playwright install chromium
+    buildCommand: pip install uv && uv sync --frozen
     startCommand: uv run uvicorn app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /healthz
     envVars:
