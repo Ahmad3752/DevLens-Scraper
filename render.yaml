@@ -15,6 +15,8 @@ services:
         sync: false
       - key: SCRAPER_REDIS_URL
         sync: false
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /opt/render/project/src/.cache/ms-playwright
       - key: SCRAPER_TRIGGER_LOCK_TTL_SECONDS
         value: "43200"
       - key: JOB_SCRAPING_BOARDS
