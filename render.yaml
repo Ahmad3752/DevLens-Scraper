@@ -19,6 +19,8 @@ services:
         value: /opt/render/project/src/.cache/ms-playwright
       - key: SCRAPER_TRIGGER_LOCK_TTL_SECONDS
         value: "43200"
+      - key: SCRAPER_TRIGGER_STALE_AFTER_SECONDS
+        value: "900"
       - key: JOB_SCRAPING_BOARDS
         value: linkedin,indeed,rozee,mustakbil
       - key: JOB_SCRAPING_MAX_PAGES_PER_BOARD

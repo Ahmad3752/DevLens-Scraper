@@ -25,6 +25,7 @@ class Settings:
     scraper_seen_ttl: int
     scraper_stats_ttl: int
     scraper_trigger_lock_ttl_seconds: int
+    scraper_trigger_stale_after_seconds: int
     job_scraping_max_pages_per_board: int
     job_scraping_max_jobs_per_board: int
     job_scraping_download_delay: float
@@ -107,6 +108,7 @@ def _build_settings() -> Settings:
         scraper_seen_ttl=_get_env_int("SCRAPER_REDIS_SEEN_TTL", _get_env_int("REDIS_PROCESSED_TTL", 86400)),
         scraper_stats_ttl=_get_env_int("SCRAPER_REDIS_STATS_TTL", 86400),
         scraper_trigger_lock_ttl_seconds=_get_env_int("SCRAPER_TRIGGER_LOCK_TTL_SECONDS", 43200),
+        scraper_trigger_stale_after_seconds=_get_env_int("SCRAPER_TRIGGER_STALE_AFTER_SECONDS", 900),
         job_scraping_max_pages_per_board=_get_env_int("JOB_SCRAPING_MAX_PAGES_PER_BOARD", 2),
         job_scraping_max_jobs_per_board=_get_env_int("JOB_SCRAPING_MAX_JOBS_PER_BOARD", 50),
         job_scraping_download_delay=_get_env_float(

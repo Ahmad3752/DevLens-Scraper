@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -16,6 +17,7 @@ class FakeTriggerRedis:
         self.lock = None
         self.status = {"status": "idle"}
         self.released = False
+        self.settings = Mock(scraper_trigger_stale_after_seconds=900)
 
     def get_scraper_trigger_lock(self):
         return self.lock
@@ -92,7 +94,11 @@ class TestDevLensJobsPilot(unittest.TestCase):
     def test_run_scraper_refuses_duplicate_run(self):
         fake_redis = FakeTriggerRedis()
         fake_redis.lock = "existing-trigger"
-        fake_redis.status = {"status": "running", "trigger_id": "existing-trigger"}
+        fake_redis.status = {
+            "status": "running",
+            "trigger_id": "existing-trigger",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
 
         with patch("app.get_redis_service", return_value=fake_redis), patch(
             "app.run_bulk_pipeline",
@@ -104,6 +110,31 @@ class TestDevLensJobsPilot(unittest.TestCase):
         self.assertEqual(response.json()["status"], "already_running")
         self.assertEqual(response.json()["trigger_id"], "existing-trigger")
         run_mock.assert_not_called()
+
+    def test_run_scraper_recovers_stale_running_lock(self):
+        fake_redis = FakeTriggerRedis()
+        fake_redis.lock = "stale-trigger"
+        fake_redis.status = {
+            "status": "running",
+            "trigger_id": "stale-trigger",
+            "updated_at": (datetime.now(timezone.utc) - timedelta(minutes=20)).isoformat(),
+        }
+        run_mock = Mock(return_value={"run_id": "run-2", "inserted": 1})
+
+        with patch("app.get_redis_service", return_value=fake_redis), patch(
+            "app.run_bulk_pipeline",
+            run_mock,
+        ), patch(
+            "app._start_scraper_thread",
+            side_effect=lambda trigger_id: app_module._run_scraper_background(trigger_id),
+        ):
+            client = TestClient(app)
+            response = client.get("/run-scraper")
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.json()["status"], "started")
+        run_mock.assert_called_once()
+        self.assertEqual(fake_redis.status["status"], "success")
 
     def test_scraper_status_returns_current_redis_status(self):
         fake_redis = FakeTriggerRedis()
