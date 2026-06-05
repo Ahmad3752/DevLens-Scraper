@@ -1,18 +1,8 @@
-<div align="center">
-
 # Job Board Scraper
 
 **Multi-board job scraper for Pakistan**
 
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
-[![Scrapling](https://img.shields.io/badge/Scrapling-0.4.7-FF6B35)](https://github.com/D4Vinci/Scrapling)
-[![Supabase](https://img.shields.io/badge/Supabase-2.30-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
-[![Redis](https://img.shields.io/badge/Redis-7.4-DC382D?logo=redis&logoColor=white)](https://redis.io)
-[![uv](https://img.shields.io/badge/uv-package%20manager-7C3AED)](https://github.com/astral-sh/uv)
-
-Scrape LinkedIn and Indeed for job listings in Pakistan. Cleans and enriches each posting, deduplicates via Redis and upserts everything to Supabase.
-
-</div>
+Scrape LinkedIn,Rozee,Mustakbil and Indeed for job listings in Pakistan. Cleans and enriches each posting, deduplicates via Redis and upserts everything to Supabase.
 
 ---
 
@@ -27,7 +17,6 @@ Scrape LinkedIn and Indeed for job listings in Pakistan. Cleans and enriches eac
 - [Deployment](#deployment)
 - [Roles Covered](#roles-covered)
 - [Project Structure](#project-structure)
-- [Frontend](#frontend)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -40,8 +29,6 @@ Scrape LinkedIn and Indeed for job listings in Pakistan. Cleans and enriches eac
 New jobs are checked against a Redis processed set so duplicates are never written twice. Unique jobs pass through the enricher which cleans the description, matches skills against a master Excel list, parses experience level and year ranges, normalises salary strings and detects education and job type. Enriched records are upserted to Supabase in batches of 200.
 
 A separate `digital_scout_node` in `pipeline/scout.py` handles interactive, query-driven scraping with role-allowlist enforcement. It is not called by `main.py` but is available for integration into a wider agent workflow.
-
----
 
 ## Pipeline
 
@@ -91,42 +78,39 @@ A separate `digital_scout_node` in `pipeline/scout.py` handles interactive, quer
 
 ## Features
 
-| Feature | Description |
-|:---|:---|
-| **Multi-board scraping** | LinkedIn and Indeed with two alternating role sets |
-| **Anti-bot bypass** | Scrapling `StealthyFetcher` with Cloudflare solver and headless/headful fallback |
-| **Role allowlist** | Only scrapes roles listed in `PERMITTED_ROLES` - rejects everything else |
-| **Redis deduplication** | SHA-256 job IDs tracked in a TTL-based Redis set; duplicates never re-processed |
-| **Description cleaning** | HTML entity decoding, whitespace normalisation, section splitting, sentence deduplication |
-| **Skill extraction** | Word-boundary regex matching against a configurable master Excel skill list |
-| **Experience parsing** | Detects level (entry/junior/mid/senior/lead) and min/max year ranges |
-| **Salary normalisation** | Parses currency, amount range and period from free-text salary strings |
-| **Parallel workers** | Configurable thread pool for scraping multiple roles simultaneously |
-| **Failed role retry** | Roles that fail during the main pass are retried once sequentially after all others complete |
-| **Batched upsert** | Supabase upsert in configurable batches with conflict resolution on `job_id` |
-| **Enrichment confidence** | Scores each job 0–1 based on how much structured data was extracted |
-| **Stale job cleanup** | Deletes jobs older than a configurable number of days at the start of each run |
+- **Multi-board scraping** — LinkedIn, Indeed, Rozee, and Mustakbil with two alternating role sets
+- **Anti-bot bypass** — Scrapling `StealthyFetcher` with Cloudflare solver and headless/headful fallback
+- **Role allowlist** — Only scrapes roles listed in `SCRAPER_ROLE_KEYS` - rejects everything else
+- **Redis deduplication** — SHA-256 job IDs tracked in a TTL-based Redis set; duplicates never re-processed
+- **Description cleaning** — HTML entity decoding, whitespace normalisation, section splitting, sentence deduplication
+- **Skill extraction** — Word-boundary regex matching against a configurable master Excel skill list
+- **Experience parsing** — Detects level (entry/junior/mid/senior/lead) and min/max year ranges
+- **Salary normalisation** — Parses currency, amount range and period from free-text salary strings
+- **Parallel workers** — Configurable thread pool for scraping multiple roles simultaneously
+- **Failed role retry** — Roles that fail during the main pass are retried once sequentially after all others complete
+- **Batched upsert** — Supabase upsert in configurable batches with conflict resolution on `job_id`
+- **Enrichment confidence** — Scores each job 0–1 based on how much structured data was extracted
+- **Stale job cleanup** — Marks jobs older than a configurable number of days as inactive
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|:---|:---|
-| Scraping | Scrapling 0.4.7 (`StealthyFetcher`) |
-| Parsers | Per-board CSS selector parsers with adaptive fallback chains |
-| Enrichment | pandas, regex, openpyxl |
-| Deduplication / Queue | Redis 7.4 |
-| Database | Supabase (PostgreSQL via `supabase-py` 2.30) |
-| State | LangChain Core (message types) |
-| Runtime | Python 3.12, uv |
+- **Scraping** — Scrapling 0.4.7 (`StealthyFetcher`)
+- **Parsers** — Per-board CSS selector parsers with adaptive fallback chains
+- **Enrichment** — pandas, regex, openpyxl
+- **Deduplication / Queue** — Redis 7.4
+- **Database** — Supabase (PostgreSQL via `supabase-py`)
+- **State Management** — LangChain Core (message types)
+- **API** — FastAPI with uvicorn
+- **Runtime** — Python 3.12+, uv package manager
 
 ---
 
 ## Prerequisites
 
 - Python 3.12+
-- Redis (local or remote)
+- Redis (local or remote; Upstash recommended for production)
 - Supabase project with service role key
 - Scrapling fetcher extras (installs Playwright/Camoufox automatically via `scrapling[fetchers]`)
 - Master skill list Excel file (default: `data/skills_master.xlsx`)
@@ -136,7 +120,7 @@ A separate `digital_scout_node` in `pipeline/scout.py` handles interactive, quer
 ## Getting Started
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Ahmad3752/Scrapling-Job-Boards-Scrapper.git
 cd Scrapling-Job-Board-Scrapper
 
 # Install dependencies
@@ -149,162 +133,134 @@ uv run playwright install
 cp .env.example .env
 ```
 
-Edit `.env` with your Supabase credentials and Redis URL (see [Environment Variables](#environment-variables)), then run:
+Edit `.env` with your Supabase credentials and Redis URL, then run:
 
 ```bash
 uv run python main.py
 ```
 
+The scraper will run through all permitted roles and insert unique jobs into Supabase. It runs locally in sequential mode by default. Configure `JOB_SCRAPING_WORKERS` to run multiple roles in parallel.
+
 ---
 
 ## Deployment
 
-This repo can be deployed to Render as a FastAPI web service and triggered by cron-job.org every 12 hours.
+### GitHub Actions (Recommended)
 
-### Render Web Service
+The scraper is deployed via **GitHub Actions** with scheduled runs every 12 hours. Each run:
+- Scrapes all configured boards (LinkedIn, Indeed, Rozee, Mustakbil)
+- Processes all permitted roles
+- Deduplicates against Redis processed set (24-hour TTL)
+- Enriches and upserts to Supabase in batches of 200
 
-The Render blueprint is in `render.yaml`.
+**Setup:**
 
-1. Push the repo to GitHub.
-2. In Render, create a new Blueprint or Web Service from the GitHub repo.
-3. Add these environment variables in Render:
+1. Push the repo to GitHub
+2. Go to **Settings → Secrets and variables → Actions** and add these secrets:
 
-| Variable | Description |
+| Secret | Example |
 |:---|:---|
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key |
-| `SCRAPER_REDIS_URL` | Upstash/Redis URL. Use `rediss://...` for TLS |
-| `SCRAPER_TRIGGER_LOCK_TTL_SECONDS` | `43200` seconds, matching the 12-hour cron interval |
+| `SUPABASE_URL` | `https://your-project.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Your service role key |
+| `SCRAPER_REDIS_URL` | `rediss://default:password@upstash-endpoint:6379` |
 | `JOB_SCRAPING_BOARDS` | `linkedin,indeed,rozee,mustakbil` |
 | `JOB_SCRAPING_MAX_PAGES_PER_BOARD` | `1` |
 | `JOB_SCRAPING_MAX_JOBS_PER_BOARD` | `15` |
 | `JOB_SCRAPING_WORKERS` | `2` |
-| `JOB_SCRAPING_FETCH_TIMEOUT_MS` | `60000` milliseconds |
-| `JOB_SCRAPING_DOWNLOAD_DELAY` | `2.0` seconds |
+| `JOB_SCRAPING_FETCH_TIMEOUT_MS` | `60000` |
+| `JOB_SCRAPING_DOWNLOAD_DELAY` | `2.0` |
+| `JOB_STALE_AFTER_DAYS` | `7` |
 
-Render commands:
+3. GitHub Actions will automatically run the scraper every 12 hours based on the workflow schedule in `.github/workflows/scrape.yml`.
+
+### Local Deployment
+
+For testing and development:
 
 ```bash
-pip install uv && uv sync --frozen && uv run playwright install --with-deps chromium
-uv run uvicorn app:app --host 0.0.0.0 --port $PORT
+# Run once locally
+uv run python main.py
+
+# For continuous monitoring, wrap with cron:
+# 0 */12 * * * cd /path/to/Scrapling-Job-Boards-Scrapper && uv run python main.py
 ```
 
-Cron-job.org scraper trigger:
+### FastAPI Web Service
 
-```text
-URL: https://YOUR-RENDER-SERVICE.onrender.com/run-scraper
-Method: GET
-Schedule: 0 */12 * * *
+The repo includes a FastAPI web service (`app.py`) for integrating with external schedulers or dashboards:
+
+```bash
+uv run uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
-Cron-job.org keepalive:
+Available endpoints:
 
-```text
-URL: https://YOUR-RENDER-SERVICE.onrender.com/healthz
-Method: GET
-Schedule: */10 * * * *
-```
-
-Useful endpoints:
-
-```text
-/healthz
-/run-scraper
-/scraper-status
-```
-
-### GitHub Actions Scraper
-
-The scraper is deployed via **GitHub Actions** with 8 scheduled runs per day - LinkedIn and Indeed alternate every 3 hours with each role set scraped twice.
-
-| Time (PKT) | Board | Role Set |
-|:---|:---|:---|
-| 1:00 AM | LinkedIn | Set 1 |
-| 4:00 AM | Indeed | Set 1 |
-| 7:00 AM | LinkedIn | Set 2 |
-| 10:00 AM | Indeed | Set 2 |
-| 1:00 PM | LinkedIn | Set 1 |
-| 4:00 PM | Indeed | Set 1 |
-| 7:00 PM | LinkedIn | Set 2 |
-| 10:00 PM | Indeed | Set 2 |
-
-### Setup
-
-1. Push the repo to GitHub
-2. Go to **Settings → Secrets and variables → Actions** and add the following secrets:
-
-| Secret | Description |
-|:---|:---|
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key |
-| `REDIS_URL` | Upstash Redis URL (`rediss://...`) |
-| `PERMITTED_ROLES_1` | JSON array of roles for the first daily pass |
-| `PERMITTED_ROLES_2` | JSON array of roles for the second daily pass |
-| `JOB_SCRAPING_WORKERS` | Number of parallel workers (default: 1) |
-| `REDIS_MAX_RETRIES` | Number of Redis retry attempts |
-| `REDIS_JOB_QUEUE_PREFIX` | Redis key prefix for job queue |
-| `REDIS_PROCESSED_TTL` | TTL in seconds for processed job IDs |
-| `JOB_SCRAPING_MAX_PAGES_PER_BOARD` | Max listing pages to scrape per board |
-| `JOB_SCRAPING_MAX_JOBS_PER_BOARD` | Max jobs to scrape per board |
-| `JOB_SCRAPING_DOWNLOAD_DELAY` | Delay in seconds between requests |
-| `JOB_STALE_AFTER_DAYS` | Days after which scraped jobs are deleted |
-
-3. Go to **Actions → Daily Job Scrape → Run workflow** to trigger a manual run - use the dropdowns to select a specific board and role set, or leave as "all" for both
-
-The workflow file is at `.github/workflows/scrape.yml`.
+- `GET /healthz` — Health check
+- `GET /run-scraper` — Trigger scraper manually
+- `GET /scraper-status` — Get scraper status
 
 ---
 
 ## Roles Covered
 
-60 roles across two sets, each scraped twice daily on both LinkedIn and Indeed.
+The scraper supports 8 canonical developer roles configured via `SCRAPER_ROLE_KEYS`:
 
-**Set 1:**
+- **backend** — Backend Developer
+- **frontend** — Frontend Developer
+- **full_stack** — Full Stack Developer
+- **mobile** — Mobile Developer
+- **ai_ml** — AI/ML Engineer
+- **devops** — DevOps Engineer
+- **data_engineer** — Data Engineer
+- **qa_automation** — QA Automation Engineer
 
-Software Engineer, Data Engineer, UI/UX Designer, DevOps Engineer, Java Developer, Data Analyst, React Developer, MERN Stack Developer, Mobile App Developer, Backend Developer, Associate Software Engineer, Node.js Developer, Flutter Developer, Cybersecurity Analyst, LLM Engineer, NLP Engineer, Information Security Analyst, MLOps Engineer, BI Developer, AWS Cloud Engineer, QA Automation Engineer, iOS Developer, Salesforce Developer, Ethical Hacker, SOC Analyst, DevSecOps Engineer, AI Research Engineer, Conversational AI Developer, Game Developer, AI Product Developer
-
-**Set 2:**
-
-Full-Stack Developer, Machine Learning Engineer, AI Engineer, Frontend Developer, SQA Engineer, Data Scientist, Python Developer, Blockchain Developer, Generative AI Engineer, Business Analyst, Product Manager, AI Automation Engineer, Cybersecurity Engineer, Android Developer, Agentic AI Developer, Cloud Engineer, Computer Vision Engineer, Business Intelligence Analyst, Analytics Engineer, Network Security Engineer, Azure Engineer, Solutions Architect, Penetration Tester, Web3 Developer, Application Security Engineer, Cloud Security Engineer, SIEM Engineer, Technical Project Manager, Big Data Engineer, Polyglot Engineer
+Each role is scraped across all configured boards (LinkedIn, Indeed, Rozee, Mustakbil) every 12 hours. The role mapping is defined in `core/devlens_roles.py` and can be customized by updating environment variables.
 
 ---
 
 ## Project Structure
 
 ```
-main.py                    <- entry point: runs full pipeline for all permitted roles
-pyproject.toml             <- dependencies (managed with uv)
-.env.example               <- environment variable template
-data/
-  skills_master.xlsx       <- master skill list used by the enricher
+main.py                    ← Entry point: runs full pipeline for all permitted roles
+app.py                     ← FastAPI web service for manual triggering and status checks
+pyproject.toml             ← Dependencies (managed with uv)
+.env.example               ← Environment variable template
+
 core/
-  settings.py              <- env-backed settings singleton
-  state.py                 <- AgentState and JobData TypedDicts
-  role_filters.py          <- role allowlist enforcement helpers
+  devlens_roles.py         ← Role label mapping and query generation
+  settings.py              ← Env-backed settings singleton
+  state.py                 ← AgentState and JobData TypedDicts
+  role_filters.py          ← Role allowlist enforcement helpers
+
 scraper/
-  spider.py                <- multi-board scrape coordinator (JobScraperSpider)
+  spider.py                ← Multi-board scrape coordinator (JobScraperSpider)
+  normalization.py         ← Job post normalization utilities
   boards/
-    base.py                <- BaseJobParser ABC with shared utilities
-    linkedin.py            <- LinkedIn parser
-    indeed.py              <- Indeed parser
+    base.py                ← BaseJobParser ABC with shared utilities
+    linkedin.py            ← LinkedIn parser
+    indeed.py              ← Indeed parser
+    rozee.py               ← Rozee parser
+    mustakbil.py           ← Mustakbil parser
+
 pipeline/
-  enricher.py              <- JobEnricher: description cleaning, skill/experience/salary extraction
-  enricher_node.py         <- LangChain node wrapper around JobEnricher
-  scout.py                 <- digital_scout_node: query-driven scraping with role guard
+  enricher.py              ← JobEnricher: cleaning, skill/experience/salary extraction
+  enricher_node.py         ← LangChain node wrapper around JobEnricher
+  scout.py                 ← digital_scout_node: query-driven scraping with role guard
+
 services/
-  redis.py                 <- Redis queue and deduplication service
-  supabase.py              <- Supabase CRUD operations
+  redis.py                 ← Redis queue and deduplication service
+  supabase.py              ← Supabase CRUD operations
+
+data/
+  job_cache/               ← Cached job data (e.g., ai_ml.json)
+  skills_master.xlsx       ← Master skill list for enrichment
+
 tests/
-  test_scout.py            <- query-intent validation tests for digital_scout_node
+  test_*.py                ← Unit tests for core modules
+
+static/
+  index.html, styles.css, app.js  ← Frontend dashboard
 ```
-
----
-
-## Frontend
-
-The dashboard for browsing scraped jobs lives in a separate repo:
-
-**[Scrapling Job Boards Scrapper Frontend](https://github.com/muhammadhaider02/Scrapling-Job-Boards-Scrapper-Frontend)** A Next.js app with live stats, filters and paginated job listings powered by Supabase.
 
 ---
 
@@ -313,10 +269,9 @@ The dashboard for browsing scraped jobs lives in a separate repo:
 1. Open an issue describing the bug or feature before starting any work
 2. Fork the repo and create a branch from `main`
 3. Make your changes and reference the issue in your PR
-4. Submit a pull request for review
+4. Run tests locally: `uv run pytest tests/`
+5. Submit a pull request for review
 
 ---
 
-## License
 
-This project is licensed under the [MIT License](LICENSE).
