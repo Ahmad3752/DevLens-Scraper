@@ -9,6 +9,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.0"
+      - key: PYTHONUNBUFFERED
+        value: "1"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
@@ -20,7 +22,7 @@ services:
       - key: SCRAPER_TRIGGER_LOCK_TTL_SECONDS
         value: "43200"
       - key: SCRAPER_TRIGGER_STALE_AFTER_SECONDS
-        value: "900"
+        value: "180"
       - key: JOB_SCRAPING_BOARDS
         value: linkedin,indeed,rozee,mustakbil
       - key: JOB_SCRAPING_MAX_PAGES_PER_BOARD

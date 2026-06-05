@@ -60,7 +60,7 @@ class TestScraperRedis(unittest.TestCase):
             scraper_seen_ttl=86400,
             scraper_stats_ttl=86400,
             scraper_trigger_lock_ttl_seconds=43200,
-            scraper_trigger_stale_after_seconds=900,
+            scraper_trigger_stale_after_seconds=180,
             redis_job_queue_prefix="jobs",
             redis_processed_ttl=86400,
         )

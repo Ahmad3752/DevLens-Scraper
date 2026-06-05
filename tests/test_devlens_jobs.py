@@ -17,7 +17,7 @@ class FakeTriggerRedis:
         self.lock = None
         self.status = {"status": "idle"}
         self.released = False
-        self.settings = Mock(scraper_trigger_stale_after_seconds=900)
+        self.settings = Mock(scraper_trigger_stale_after_seconds=180)
 
     def get_scraper_trigger_lock(self):
         return self.lock
